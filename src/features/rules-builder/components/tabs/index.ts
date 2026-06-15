@@ -1,0 +1,11 @@
+export { default as CodeStyleTab } from "./code-style-tab";
+export { default as ComponentsTab } from "./components-tab";
+export { default as CustomRulesTab } from "./custom-rules-tab";
+export { default as ImportsTab } from "./imports-tab";
+export { default as NamingTab } from "./naming-tab";
+export { default as OverviewTab } from "./overview-tab";
+export { default as PackagesRulesTab } from "./packages-rules-tab";
+export { default as PerformanceTab } from "./performance-tab";
+export { default as PreviewPanel } from "./preview-panel";
+export { default as StructureTab } from "./structure-tab";
+export { default as TestingTab } from "./testing-tab";

@@ -2,11 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  DndContext, DragEndEvent, DragStartEvent, PointerSensor,
-  useSensor, useSensors, DragOverlay, closestCenter,
+  DndContext, DragEndEvent, DragOverEvent, DragStartEvent, PointerSensor,
+  useDraggable, useDroppable, useSensor, useSensors, DragOverlay, closestCenter,
 } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import {
   ChevronRight, ChevronDown, Folder, FolderOpen, File,
   Trash2, Edit2, Check, X, FolderPlus, FilePlus,
@@ -88,11 +87,21 @@ interface RowProps {
 }
 
 function TreeRow({ flat, onToggle, onAdd, onRename, onDelete, renaming, setRenaming, isDropTarget }: RowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: flat.id });
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setNodeRef: setDraggableNodeRef,
+  } = useDraggable({ id: flat.id });
+  const { isOver, setNodeRef: setDroppableNodeRef } = useDroppable({ id: flat.id });
   const [nameInput, setNameInput] = useState(flat.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const [hovered, setHovered] = useState(false);
   const { theme: t } = useTheme();
+  const setNodeRef = useCallback((node: HTMLDivElement | null) => {
+    setDraggableNodeRef(node);
+    setDroppableNodeRef(node);
+  }, [setDraggableNodeRef, setDroppableNodeRef]);
 
   useEffect(() => {
     if (renaming !== flat.id) return;
@@ -112,67 +121,86 @@ function TreeRow({ flat, onToggle, onAdd, onRename, onDelete, renaming, setRenam
   const isFolder = flat.type === "folder";
   const isSpecial = flat.name.startsWith("(") || flat.name.startsWith("[");
   const indent = flat.depth * 16 + 8;
+  const isActiveDropTarget = isDropTarget || isOver;
+  const dragHandleProps = {
+    ...attributes,
+    ...listeners,
+  };
 
   return (
     <div ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.2 : 1,
-        background: isDropTarget && !isDragging ? t.accent + "15" : hovered && !isDragging ? t.accent + "10" : "transparent",
+        opacity: isDragging ? 0.45 : 1,
+        background: isActiveDropTarget && !isDragging ? t.accent + "15" : hovered && !isDragging ? t.accent + "10" : "transparent",
         borderRadius: 8,
         display: "flex", alignItems: "center", gap: 4, padding: "2px 8px 2px 0",
-        outline: isDropTarget ? `1px solid ${t.accent}40` : undefined,
+        outline: isActiveDropTarget ? `1px solid ${t.accent}40` : undefined,
       }}
-      className="group select-none w-full"
+      className="group relative select-none w-full"
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     >
       <div style={{ display: "contents" }}>
-        <div {...attributes} {...listeners}
+        <div {...dragHandleProps}
           className="flex items-center justify-center w-[18px] h-full shrink-0 cursor-grab active:cursor-grabbing pl-0.5 opacity-0 group-hover:opacity-40 hover:!opacity-80"
           onClick={(e) => e.stopPropagation()}>
           <GripVertical size={12} style={{ color: t.textMuted }} />
         </div>
 
-        <div style={{ width: indent }} className="shrink-0" />
+        <div
+          {...dragHandleProps}
+          className="flex min-w-0 flex-1 items-center gap-1 cursor-grab active:cursor-grabbing"
+          title="Hold to drag"
+        >
+          <div style={{ width: indent }} className="shrink-0" />
 
-        <div className="w-4 shrink-0 flex items-center justify-center cursor-pointer"
-          onClick={(e) => { e.stopPropagation(); isFolder && onToggle(flat.id); }}>
-          {isFolder ? (flat.expanded ? <ChevronDown size={13} style={{ color: t.textMuted }} /> : <ChevronRight size={13} style={{ color: t.textMuted }} />) : null}
+          <div className="w-4 shrink-0 flex items-center justify-center cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isFolder) onToggle(flat.id);
+            }}>
+            {isFolder ? (flat.expanded ? <ChevronDown size={13} style={{ color: t.textMuted }} /> : <ChevronRight size={13} style={{ color: t.textMuted }} />) : null}
+          </div>
+
+          <div className="shrink-0 cursor-pointer" onClick={(e) => {
+            e.stopPropagation();
+            if (isFolder) onToggle(flat.id);
+          }}>
+            {isFolder ? <FolderIco open={!!flat.expanded} special={isSpecial} /> : <FileIco name={flat.name} />}
+          </div>
+
+          {renaming === flat.id ? (
+            <input ref={inputRef} value={nameInput} onChange={(e) => setNameInput(e.target.value)}
+              onBlur={confirmRename}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setRenaming(null); }}
+              className="flex-1 min-w-0 px-1 py-0 text-xs font-mono rounded outline-none"
+              style={{ background: t.surface, color: t.text, border: `1px solid ${t.accent}` }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()} />
+          ) : (
+            <span
+              className="flex-1 min-w-0 truncate text-xs font-mono cursor-pointer"
+              style={{ color: isSpecial ? "#F97316" : isFolder ? t.text : t.textMuted }}
+              onDoubleClick={() => setRenaming(flat.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isFolder) onToggle(flat.id);
+              }}>
+              {flat.name}
+            </span>
+          )}
         </div>
-
-        <div className="shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); isFolder && onToggle(flat.id); }}>
-          {isFolder ? <FolderIco open={!!flat.expanded} special={isSpecial} /> : <FileIco name={flat.name} />}
-        </div>
-
-        {renaming === flat.id ? (
-          <input ref={inputRef} value={nameInput} onChange={(e) => setNameInput(e.target.value)}
-            onBlur={confirmRename}
-            onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setRenaming(null); }}
-            className="flex-1 min-w-0 px-1 py-0 text-xs font-mono rounded outline-none"
-            style={{ background: t.surface, color: t.text, border: `1px solid ${t.accent}` }}
-            onClick={(e) => e.stopPropagation()} />
-        ) : (
-          <span
-            className="flex-1 min-w-0 truncate text-xs font-mono cursor-pointer"
-            style={{ color: isSpecial ? "#F97316" : isFolder ? t.text : t.textMuted }}
-            onDoubleClick={() => setRenaming(flat.id)}
-            onClick={(e) => { e.stopPropagation(); isFolder && onToggle(flat.id); }}>
-            {flat.name}
-          </span>
-        )}
 
         {hovered && renaming !== flat.id && !isDragging && (
           <div className="flex items-center gap-0.5 shrink-0 ml-1">
             {isFolder && (
               <>
-                <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(flat.id, "folder"); }}
+                <button onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(flat.id, "folder"); }}
                   className="p-1 rounded transition-colors"
                   style={{ color: t.textMuted }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = "#F59E0B")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = t.textMuted)}
                   title="New folder inside"><FolderPlus size={12} /></button>
-                <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(flat.id, "file"); }}
+                <button onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(flat.id, "file"); }}
                   className="p-1 rounded transition-colors"
                   style={{ color: t.textMuted }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = "#3178C6")}
@@ -180,12 +208,12 @@ function TreeRow({ flat, onToggle, onAdd, onRename, onDelete, renaming, setRenam
                   title="New file inside"><FilePlus size={12} /></button>
               </>
             )}
-            <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setRenaming(flat.id); }}
+            <button onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setRenaming(flat.id); }}
               className="p-1 rounded transition-colors" style={{ color: t.textMuted }}
               onMouseEnter={(e) => (e.currentTarget.style.color = t.text)}
               onMouseLeave={(e) => (e.currentTarget.style.color = t.textMuted)}
               title="Rename"><Edit2 size={12} /></button>
-            <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(flat.id); }}
+            <button onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(flat.id); }}
               className="p-1 rounded transition-colors" style={{ color: t.textMuted }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
               onMouseLeave={(e) => (e.currentTarget.style.color = t.textMuted)}
@@ -239,7 +267,7 @@ export default function FolderTreeEditor() {
   const [copied, setCopied] = useState(false);
   const { theme: t } = useTheme();
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 180, tolerance: 6 } }));
 
   const startAdd = useCallback((parentId: string, type: "folder" | "file") => {
     setTree((prev) => {
@@ -285,6 +313,11 @@ export default function FolderTreeEditor() {
 
   const handleDragStart = ({ active }: DragStartEvent) => { setActiveId(String(active.id)); setAdding(null); };
 
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    const overId = over ? String(over.id) : null;
+    setDragOverId(overId && overId !== String(active.id) ? overId : null);
+  };
+
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveId(null); setDragOverId(null);
     if (!over || active.id === over.id) return;
@@ -292,12 +325,17 @@ export default function FolderTreeEditor() {
     const activeFlat = freshFlat.find((f) => f.id === active.id);
     const overFlat = freshFlat.find((f) => f.id === over.id);
     if (!activeFlat || !overFlat) return;
+    const activeIndex = freshFlat.findIndex((f) => f.id === active.id);
+    const overIndex = freshFlat.findIndex((f) => f.id === over.id);
+    const droppingInsideSelf = overIndex > activeIndex && freshFlat.slice(activeIndex + 1, overIndex + 1).some((node) => node.depth > activeFlat.depth && node.id === overFlat.id);
+    if (droppingInsideSelf) return;
     setTree((prev) => {
       const t2 = cloneTree(prev);
       const { tree: removed, removed: node } = removeNode(t2, String(active.id));
       if (!node) return prev;
       if (overFlat.type === "folder" && overFlat.id !== activeFlat.parentId) return insertNode(removed, overFlat.id, node, 0);
-      return insertNode(removed, overFlat.parentId, node, overFlat.index);
+      const targetIndex = activeFlat.parentId === overFlat.parentId && activeFlat.index < overFlat.index ? overFlat.index - 1 : overFlat.index;
+      return insertNode(removed, overFlat.parentId, node, targetIndex);
     });
   };
 
@@ -401,9 +439,15 @@ export default function FolderTreeEditor() {
       {/* Editor */}
       {view === "editor" ? (
         <div className="flex-1 overflow-y-auto p-2" data-lenis-prevent>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <SortableContext items={flat.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-              {displayRows.map((row, i) =>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragCancel={() => { setActiveId(null); setDragOverId(null); }}
+            onDragEnd={handleDragEnd}
+          >
+              {displayRows.map((row) =>
                 row.kind === "input" ? (
                   <InlineInput key="__inline_input__" type={adding!.type} depth={row.depth} onConfirm={confirmAdd} onCancel={() => setAdding(null)} />
                 ) : (
@@ -412,13 +456,12 @@ export default function FolderTreeEditor() {
                     isDropTarget={dragOverId === row.flat.id} />
                 )
               )}
-            </SortableContext>
-            <DragOverlay dropAnimation={null}>
+            <DragOverlay adjustScale={false} dropAnimation={null} modifiers={[snapCenterToCursor]}>
               {activeNode && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono pointer-events-none shadow-2xl"
+                <div className="inline-flex w-max max-w-[260px] items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono pointer-events-none shadow-2xl"
                   style={{ background: t.surface, color: t.text, border: `1px solid ${t.accent}60` }}>
                   {activeNode.type === "folder" ? <FolderIco open special={activeNode.name.startsWith("(")} /> : <FileIco name={activeNode.name} />}
-                  <span>{activeNode.name}</span>
+                  <span className="truncate">{activeNode.name}</span>
                 </div>
               )}
             </DragOverlay>
