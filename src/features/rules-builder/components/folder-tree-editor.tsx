@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import {
   DndContext, DragEndEvent, DragOverEvent, DragStartEvent, PointerSensor,
   useDraggable, useDroppable, useSensor, useSensors, DragOverlay, closestCenter,
+  pointerWithin, type CollisionDetection,
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import {
@@ -18,6 +19,11 @@ import {
 import { useTheme } from "@/shared/hooks/use-theme";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const pointerFirstCollision: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
+};
 
 function fileColor(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
@@ -441,7 +447,7 @@ export default function FolderTreeEditor() {
         <div className="flex-1 overflow-y-auto p-2" data-lenis-prevent>
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={pointerFirstCollision}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragCancel={() => { setActiveId(null); setDragOverId(null); }}
