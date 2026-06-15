@@ -123,6 +123,11 @@ export default function Sidebar({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const togglePinned = useCallback(() => {
+    setPinned((current) => !current);
+    setVisible(true);
+  }, []);
+
   const toggleFullscreen = useCallback(async () => {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
@@ -139,16 +144,18 @@ export default function Sidebar({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "f" || event.repeat) return;
+      const key = event.key.toLowerCase();
+      if (!["f", "p"].includes(key) || event.repeat) return;
       const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      if (target && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable)) return;
       event.preventDefault();
-      void toggleFullscreen();
+      if (key === "f") void toggleFullscreen();
+      if (key === "p") togglePinned();
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleFullscreen]);
+  }, [toggleFullscreen, togglePinned]);
 
   useEffect(() => {
     const onMouseMove = (event: MouseEvent) => {
@@ -279,11 +286,8 @@ export default function Sidebar({
           <SidebarButton
             active={pinned}
             icon={pinned ? Pin : PinOff}
-            label={pinned ? "Unpin sidebar" : "Pin sidebar"}
-            onClick={() => {
-              setPinned((current) => !current);
-              setVisible(true);
-            }}
+            label={pinned ? "Unpin sidebar (P)" : "Pin sidebar (P)"}
+            onClick={togglePinned}
           />
         </div>
       </aside>
