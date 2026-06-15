@@ -15,8 +15,8 @@ import {
 import {
   TreeNode, FlatNode, genId, cloneTree, findNode,
   removeNode, insertNode, updateNode, flattenTree, generateASCII, defaultTree,
-} from "../store/treeStore";
-import { useTheme } from "../store/themeStore";
+} from "@/features/rules-builder/store/tree-store";
+import { useTheme } from "@/shared/hooks/use-theme";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,12 @@ function TreeRow({ flat, onToggle, onAdd, onRename, onDelete, renaming, setRenam
   const { theme: t } = useTheme();
 
   useEffect(() => {
-    if (renaming === flat.id) { setNameInput(flat.name); setTimeout(() => inputRef.current?.select(), 20); }
+    if (renaming !== flat.id) return;
+    const timer = window.setTimeout(() => {
+      setNameInput(flat.name);
+      inputRef.current?.select();
+    }, 20);
+    return () => window.clearTimeout(timer);
   }, [renaming, flat.id, flat.name]);
 
   const confirmRename = () => {
@@ -297,17 +302,20 @@ export default function FolderTreeEditor() {
   };
 
   const handleUpload = () => {
-    const input = document.createElement("input");
+    type DirectoryInput = HTMLInputElement & { webkitdirectory: boolean };
+    type DirectoryFile = File & { webkitRelativePath: string };
+
+    const input = document.createElement("input") as DirectoryInput;
     input.type = "file";
-    (input as any).webkitdirectory = true;
+    input.webkitdirectory = true;
     input.multiple = true;
     input.onchange = () => {
-      const files = Array.from(input.files || []);
+      const files = Array.from(input.files || []) as DirectoryFile[];
       if (!files.length) return;
       const built: TreeNode[] = [];
       const map = new Map<string, TreeNode>();
       files.forEach((f) => {
-        const parts = ((f as any).webkitRelativePath as string).split("/");
+        const parts = f.webkitRelativePath.split("/");
         let parent: TreeNode[] = built;
         parts.forEach((part, i) => {
           const isFile = i === parts.length - 1;

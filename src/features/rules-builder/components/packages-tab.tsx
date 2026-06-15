@@ -11,8 +11,8 @@ import {
 import {
   PackagesConfig, PackageEntry, PackageManager, DepType,
   PM_LABELS, generateInstallCommands, genPkgId, defaultPackagesConfig,
-} from "../store/packagesStore";
-import { useTheme } from "../store/themeStore";
+} from "@/shared/types/packages";
+import { useTheme } from "@/shared/hooks/use-theme";
 
 // ─── npm suggestions API ──────────────────────────────────────────────────────
 
@@ -23,6 +23,19 @@ interface NpmSuggestion {
   keywords?: string[];
 }
 
+interface NpmSuggestionResult {
+  name?: string;
+  version?: string;
+  description?: string;
+  keywords?: string[];
+}
+
+interface RegistrySearchResult {
+  objects?: Array<{
+    package: NpmSuggestionResult;
+  }>;
+}
+
 async function fetchSuggestions(query: string): Promise<NpmSuggestion[]> {
   if (!query.trim()) return [];
   try {
@@ -31,8 +44,8 @@ async function fetchSuggestions(query: string): Promise<NpmSuggestion[]> {
       { headers: { "x-spiferack-v": "1" } }
     );
     if (!res.ok) throw new Error("suggestions failed");
-    const data = await res.json();
-    return (Array.isArray(data) ? data : []).slice(0, 10).map((p: any) => ({
+    const data = (await res.json()) as NpmSuggestionResult[];
+    return (Array.isArray(data) ? data : []).slice(0, 10).map((p) => ({
       name: p.name ?? "",
       version: p.version ?? "latest",
       description: p.description ?? "",
@@ -44,10 +57,10 @@ async function fetchSuggestions(query: string): Promise<NpmSuggestion[]> {
       const res2 = await fetch(
         `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(query)}&size=10`
       );
-      const d = await res2.json();
-      return (d.objects || []).map((o: any) => ({
-        name: o.package.name,
-        version: o.package.version,
+      const d = (await res2.json()) as RegistrySearchResult;
+      return (d.objects || []).map((o) => ({
+        name: o.package.name ?? "",
+        version: o.package.version ?? "latest",
         description: o.package.description ?? "",
         keywords: o.package.keywords ?? [],
       }));
@@ -186,18 +199,28 @@ function PackageSearchBox({
   // Fetch suggestions
   useEffect(() => {
     if (!debouncedQ.trim()) {
-      setResults([]);
-      setLoading(false);
-      setOpen(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setResults([]);
+        setLoading(false);
+        setOpen(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-    setLoading(true);
+    const loadingTimer = window.setTimeout(() => {
+      setLoading(true);
+    }, 0);
+    let cancelled = false;
     fetchSuggestions(debouncedQ).then((r) => {
+      if (cancelled) return;
       setResults(r);
       setLoading(false);
       setOpen(r.length > 0);
       setFocusedIdx(-1);
     });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(loadingTimer);
+    };
   }, [debouncedQ]);
 
   // Close on outside click
@@ -630,7 +653,6 @@ export default function PackagesTab({
 
   return (
     <div className="space-y-4 overflow-visible" style={{
-      // @ts-ignore
       "--inp-bg": t.bgSecondary,
       "--inp-color": t.text,
       "--inp-border": t.surfaceBorder,

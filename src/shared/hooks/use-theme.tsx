@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
-export type ThemeId = "warm" | "light" | "dark" | "midnight" | "forest" | "ocean";
+export type ThemeId = "warm" | "dark" | "midnight" | "forest" | "ocean" | "light";
 
 export interface Theme {
   id: ThemeId;
@@ -20,114 +27,128 @@ export interface Theme {
   previewBg: string;
   previewText: string;
   orbColors: string[];
+  wave: string;
+  shadow: string;
 }
 
 export const THEMES: Record<ThemeId, Theme> = {
   warm: {
     id: "warm",
-    name: "Warm",
-    label: "🌅",
-    bg: "#F0EDE8",
-    bgSecondary: "#E8E4DD",
-    surface: "#FDFCFA",
-    surfaceBorder: "#E2DDD6",
-    text: "#2C2416",
-    textMuted: "#9C8E7A",
-    accent: "#C9851A",
-    accentLight: "#FDF3E1",
-    accentFg: "#ffffff",
-    previewBg: "#1A1410",
-    previewText: "#E8DFD0",
-    orbColors: ["#C9851A40", "#D4A03040", "#B8720020"],
-  },
-  light: {
-    id: "light",
-    name: "Light",
-    label: "☀️",
-    bg: "#F8F9FB",
-    bgSecondary: "#F1F3F6",
-    surface: "#FFFFFF",
-    surfaceBorder: "#E4E4E7",
-    text: "#111218",
-    textMuted: "#71717A",
-    accent: "#6366F1",
-    accentLight: "#EEF2FF",
-    accentFg: "#ffffff",
-    previewBg: "#0F1117",
-    previewText: "#E2E8F0",
-    orbColors: ["#6366F130", "#818CF840", "#4F46E520"],
+    name: "Warm Focus",
+    label: "WF",
+    bg: "#080806",
+    bgSecondary: "rgba(255,255,255,0.045)",
+    surface: "rgba(255,255,255,0.064)",
+    surfaceBorder: "rgba(255,255,255,0.12)",
+    text: "#f6f0e6",
+    textMuted: "rgba(246,240,230,0.46)",
+    accent: "#e0b130",
+    accentLight: "rgba(224,177,48,0.16)",
+    accentFg: "#090806",
+    previewBg: "rgba(0,0,0,0.28)",
+    previewText: "rgba(246,240,230,0.68)",
+    orbColors: ["#e0b130", "#8b6b1c", "#fff4c2"],
+    wave: "rgba(28,22,12,0.88)",
+    shadow: "rgba(224,177,48,0.18)",
   },
   dark: {
     id: "dark",
-    name: "Dark",
-    label: "🌙",
-    bg: "#111218",
-    bgSecondary: "#0F1015",
-    surface: "#1A1B23",
-    surfaceBorder: "#2A2B35",
-    text: "#E2E8F0",
-    textMuted: "#6B7280",
-    accent: "#818CF8",
-    accentLight: "#1E1F3A",
-    accentFg: "#ffffff",
-    previewBg: "#0A0A0F",
-    previewText: "#C8D0E0",
-    orbColors: ["#818CF840", "#6366F130", "#4F46E520"],
+    name: "Graphite",
+    label: "GR",
+    bg: "#080a0e",
+    bgSecondary: "rgba(255,255,255,0.045)",
+    surface: "rgba(255,255,255,0.062)",
+    surfaceBorder: "rgba(255,255,255,0.12)",
+    text: "#eef2f7",
+    textMuted: "rgba(238,242,247,0.46)",
+    accent: "#94a3b8",
+    accentLight: "rgba(148,163,184,0.17)",
+    accentFg: "#06080d",
+    previewBg: "rgba(0,0,0,0.3)",
+    previewText: "rgba(238,242,247,0.68)",
+    orbColors: ["#94a3b8", "#475569", "#dbeafe"],
+    wave: "rgba(17,24,39,0.9)",
+    shadow: "rgba(148,163,184,0.16)",
   },
   midnight: {
     id: "midnight",
     name: "Midnight",
-    label: "🌌",
-    bg: "#0A0D1A",
-    bgSecondary: "#080B15",
-    surface: "#111525",
-    surfaceBorder: "#1E2440",
-    text: "#C8D8F8",
-    textMuted: "#4A5580",
-    accent: "#4F8EF7",
-    accentLight: "#0F1A35",
-    accentFg: "#ffffff",
-    previewBg: "#05080F",
-    previewText: "#A8C0E8",
-    orbColors: ["#4F8EF740", "#2563EB30", "#1D4ED820"],
+    label: "MN",
+    bg: "#050714",
+    bgSecondary: "rgba(96,165,250,0.06)",
+    surface: "rgba(96,165,250,0.07)",
+    surfaceBorder: "rgba(147,197,253,0.15)",
+    text: "#e7f0ff",
+    textMuted: "rgba(231,240,255,0.45)",
+    accent: "#60a5fa",
+    accentLight: "rgba(96,165,250,0.18)",
+    accentFg: "#020617",
+    previewBg: "rgba(2,6,23,0.48)",
+    previewText: "rgba(231,240,255,0.68)",
+    orbColors: ["#60a5fa", "#2563eb", "#93c5fd"],
+    wave: "rgba(8,18,44,0.92)",
+    shadow: "rgba(96,165,250,0.18)",
   },
   forest: {
     id: "forest",
     name: "Forest",
-    label: "🌿",
-    bg: "#0F1A12",
-    bgSecondary: "#0C1610",
-    surface: "#162019",
-    surfaceBorder: "#243528",
-    text: "#D4E8D0",
-    textMuted: "#4A7055",
-    accent: "#4CAF72",
-    accentLight: "#102018",
-    accentFg: "#ffffff",
-    previewBg: "#080F0A",
-    previewText: "#B0D4A8",
-    orbColors: ["#4CAF7240", "#22C55E30", "#16A34A20"],
+    label: "FR",
+    bg: "#06100a",
+    bgSecondary: "rgba(74,222,128,0.055)",
+    surface: "rgba(74,222,128,0.065)",
+    surfaceBorder: "rgba(134,239,172,0.15)",
+    text: "#e7f8e7",
+    textMuted: "rgba(231,248,231,0.43)",
+    accent: "#4ade80",
+    accentLight: "rgba(74,222,128,0.17)",
+    accentFg: "#031007",
+    previewBg: "rgba(2,12,6,0.44)",
+    previewText: "rgba(231,248,231,0.68)",
+    orbColors: ["#4ade80", "#16a34a", "#bbf7d0"],
+    wave: "rgba(8,31,16,0.9)",
+    shadow: "rgba(74,222,128,0.16)",
   },
   ocean: {
     id: "ocean",
     name: "Ocean",
-    label: "🌊",
-    bg: "#0A1520",
-    bgSecondary: "#080F18",
-    surface: "#0F1D2C",
-    surfaceBorder: "#1A3045",
-    text: "#C0D8F0",
-    textMuted: "#3A6080",
-    accent: "#22A8D4",
-    accentLight: "#0A1E30",
+    label: "OC",
+    bg: "#041016",
+    bgSecondary: "rgba(34,211,238,0.055)",
+    surface: "rgba(34,211,238,0.065)",
+    surfaceBorder: "rgba(103,232,249,0.16)",
+    text: "#e4fbff",
+    textMuted: "rgba(228,251,255,0.43)",
+    accent: "#22d3ee",
+    accentLight: "rgba(34,211,238,0.17)",
+    accentFg: "#021014",
+    previewBg: "rgba(2,16,23,0.46)",
+    previewText: "rgba(228,251,255,0.68)",
+    orbColors: ["#22d3ee", "#0284c7", "#a5f3fc"],
+    wave: "rgba(5,32,43,0.9)",
+    shadow: "rgba(34,211,238,0.16)",
+  },
+  light: {
+    id: "light",
+    name: "Frost",
+    label: "FS",
+    bg: "#edf1f7",
+    bgSecondary: "rgba(255,255,255,0.64)",
+    surface: "rgba(255,255,255,0.62)",
+    surfaceBorder: "rgba(15,23,42,0.1)",
+    text: "#111827",
+    textMuted: "rgba(17,24,39,0.48)",
+    accent: "#4f46e5",
+    accentLight: "rgba(79,70,229,0.12)",
     accentFg: "#ffffff",
-    previewBg: "#050C14",
-    previewText: "#A0C8E8",
-    orbColors: ["#22A8D440", "#0EA5E930", "#0284C720"],
+    previewBg: "rgba(255,255,255,0.58)",
+    previewText: "rgba(17,24,39,0.72)",
+    orbColors: ["#4f46e5", "#93c5fd", "#ffffff"],
+    wave: "rgba(255,255,255,0.62)",
+    shadow: "rgba(79,70,229,0.14)",
   },
 };
 
-const THEME_ORDER: ThemeId[] = ["warm", "light", "dark", "midnight", "forest", "ocean"];
+const themeOrder: ThemeId[] = ["warm", "dark", "midnight", "forest", "ocean", "light"];
 
 interface ThemeCtx {
   theme: Theme;
@@ -148,35 +169,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = useCallback((id: ThemeId) => {
     setThemeId(id);
-    localStorage.setItem("rb-theme", id);
+    localStorage.setItem("rules-theme", id);
   }, []);
 
   const cycleTheme = useCallback(() => {
-    setThemeId((cur) => {
-      const idx = THEME_ORDER.indexOf(cur);
-      const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length];
-      localStorage.setItem("rb-theme", next);
+    setThemeId((current) => {
+      const next = themeOrder[(themeOrder.indexOf(current) + 1) % themeOrder.length];
+      localStorage.setItem("rules-theme", next);
       return next;
     });
   }, []);
 
-  // Load saved theme
   useEffect(() => {
-    const saved = localStorage.getItem("rb-theme") as ThemeId | null;
-    if (saved && THEMES[saved]) setThemeId(saved);
+    const timer = window.setTimeout(() => {
+      const saved = localStorage.getItem("rules-theme") as ThemeId | null;
+      if (saved && THEMES[saved]) setThemeId(saved);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
-  // D key = cycle theme
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "d" || e.key === "D") {
-        const tag = (e.target as HTMLElement).tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-        cycleTheme();
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "d") return;
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      cycleTheme();
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [cycleTheme]);
 
   return (

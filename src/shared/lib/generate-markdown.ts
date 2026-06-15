@@ -1,6 +1,6 @@
-import type { RulesConfig } from "../store/rulesStore";
-import type { PackagesConfig } from "../store/packagesStore";
-import { generatePackageMarkdown } from "../store/packagesStore";
+import type { PackagesConfig } from "@/shared/types/packages";
+import { generatePackageMarkdown } from "@/shared/types/packages";
+import type { RulesConfig } from "@/shared/types/rules";
 
 export function generateMarkdown(config: RulesConfig, packagesConfig?: PackagesConfig): string {
   const { meta, folderStructure, naming, codeStyle, components, imports, testing, performance, customRules } = config;
@@ -44,42 +44,55 @@ export function generateMarkdown(config: RulesConfig, packagesConfig?: PackagesC
   lines.push("## 📁 Folder Structure");
   lines.push("");
   lines.push("```");
-  lines.push(`${folderStructure.useSrcDir ? "src/" : ""}${folderStructure.useAppRouter ? "app/" : "pages/"}`);
-  if (folderStructure.componentOrganization === "feature-based") {
-    lines.push("  ├── (auth)/           # Route groups");
-    lines.push("  ├── (dashboard)/");
-    lines.push("  ├── layout.tsx");
-    lines.push("  └── page.tsx");
+  if (folderStructure.useSrcDir && folderStructure.useAppRouter) {
+    lines.push(meta.name || "my-project");
+    lines.push("└── src");
+    lines.push("    ├── app");
+    lines.push("    │   ├── main");
+    lines.push("    │   ├── layout.tsx");
+    lines.push("    │   └── page.tsx");
+    lines.push("    ├── components");
+    lines.push("    │   ├── ui");
+    lines.push("    │   └── common");
+    lines.push("    │       ├── navbar.tsx");
+    lines.push("    │       └── footer.tsx");
+    lines.push("    ├── features");
+    lines.push("    └── shared");
+    lines.push("        ├── hooks");
+    lines.push("        ├── lib");
+    lines.push("        └── types");
   } else if (folderStructure.componentOrganization === "atomic") {
-    lines.push("  └── ...");
     lines.push("components/");
     lines.push("  ├── atoms/");
     lines.push("  ├── molecules/");
     lines.push("  └── organisms/");
   } else {
+    lines.push(`${folderStructure.useSrcDir ? "src/" : ""}${folderStructure.useAppRouter ? "app/" : "pages/"}`);
     lines.push("  └── ...");
     lines.push("components/");
     lines.push("  ├── Button.tsx");
     lines.push("  └── Card.tsx");
   }
 
-  const rootFolders = folderStructure.customFolders;
-  rootFolders.forEach((folder) => {
-    const icons: Record<string, string> = {
-      components: "# Shared UI components",
-      lib: "# Third-party library configs",
-      hooks: "# Custom React hooks",
-      types: "# TypeScript type definitions",
-      utils: "# Pure utility functions",
-      constants: "# App-wide constants",
-      services: "# API service layers",
-      store: "# State management",
-      styles: "# Global styles",
-    };
-    if (!["app", "pages"].includes(folder)) {
-      lines.push(`${folder}/           ${icons[folder] || ""}`);
-    }
-  });
+  if (!folderStructure.useSrcDir) {
+    const rootFolders = folderStructure.customFolders;
+    rootFolders.forEach((folder) => {
+      const icons: Record<string, string> = {
+        components: "# Shared UI components",
+        lib: "# Third-party library configs",
+        hooks: "# Custom React hooks",
+        types: "# TypeScript type definitions",
+        utils: "# Pure utility functions",
+        constants: "# App-wide constants",
+        services: "# API service layers",
+        store: "# State management",
+        styles: "# Global styles",
+      };
+      if (!["app", "pages"].includes(folder)) {
+        lines.push(`${folder}/           ${icons[folder] || ""}`);
+      }
+    });
+  }
   lines.push("```");
   lines.push("");
 
