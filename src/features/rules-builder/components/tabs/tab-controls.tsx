@@ -1,9 +1,17 @@
 "use client";
 
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
+import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 
 import type { RulesConfig } from "@/shared/types/rules";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type UpdateRulesConfig = <K extends keyof RulesConfig>(section: K, value: Partial<RulesConfig[K]>) => void;
 
@@ -15,7 +23,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="grid gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[color:var(--theme-muted)]">
+    <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--theme-muted)]">
       {label}
       {children}
     </label>
@@ -26,17 +34,52 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="h-11 rounded-xl border border-[color:var(--theme-border)] bg-black/25 px-3 text-sm normal-case tracking-normal text-[color:var(--theme-text)] outline-none transition placeholder:text-[color:var(--theme-muted)] focus:border-[color:var(--theme-accent)] focus:bg-black/35"
+      className="h-10 w-full rounded-md border border-[color:var(--theme-border)] bg-[color:var(--theme-bg)] px-3 py-2 text-sm normal-case tracking-normal text-[color:var(--theme-text)] outline-none transition-colors placeholder:text-[color:var(--theme-muted)] focus:border-[color:var(--theme-accent)] focus:ring-1 focus:ring-[color:var(--theme-accent)]"
     />
   );
 }
 
-export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
+export function SelectInput({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: (event: { target: { value: string } }) => void;
+  children: React.ReactNode;
+}) {
+  const options = React.useMemo(() => {
+    return React.Children.toArray(children)
+      .map((child) => {
+        if (React.isValidElement(child) && child.type === "option") {
+          const props = child.props as { value?: string | number; children?: React.ReactNode };
+          return {
+            value: String(props.value ?? ""),
+            label: String(props.children || ""),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ value: string; label: string }>;
+  }, [children]);
+
+  const activeOption = options.find((opt) => opt.value === value);
+
   return (
-    <select
-      {...props}
-      className="h-11 rounded-xl border border-[color:var(--theme-border)] bg-black/25 px-3 text-sm normal-case tracking-normal text-[color:var(--theme-text)] outline-none transition focus:border-[color:var(--theme-accent)]"
-    />
+    <Select value={value} onValueChange={(val) => onChange({ target: { value: val } })}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select...">
+          {activeOption?.label || ""}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -45,7 +88,7 @@ export function NumberInput(props: InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       type="number"
-      className="h-11 rounded-xl border border-[color:var(--theme-border)] bg-black/25 px-3 text-sm normal-case tracking-normal text-[color:var(--theme-text)] outline-none transition placeholder:text-[color:var(--theme-muted)] focus:border-[color:var(--theme-accent)] focus:bg-black/35"
+      className="h-10 w-full rounded-md border border-[color:var(--theme-border)] bg-[color:var(--theme-bg)] px-3 py-2 text-sm normal-case tracking-normal text-[color:var(--theme-text)] outline-none transition-colors placeholder:text-[color:var(--theme-muted)] focus:border-[color:var(--theme-accent)] focus:ring-1 focus:ring-[color:var(--theme-accent)]"
     />
   );
 }
@@ -63,19 +106,19 @@ export function Toggle({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex items-center justify-between gap-4 rounded-xl border border-[color:var(--theme-border)] bg-black/20 px-3 py-2.5 text-left text-sm text-[color:var(--theme-text)] transition hover:bg-white/[0.06]"
+      className="flex items-center justify-between gap-4 rounded-md border border-[color:var(--theme-border)] bg-[color:var(--theme-bg)] px-4 py-2.5 text-left text-sm text-[color:var(--theme-text)] transition-colors hover:bg-black/5 dark:hover:bg-white/5"
     >
       <span>{label}</span>
       <span
         className={[
-          "relative h-5 w-9 rounded-full border transition",
-          checked ? "border-[color:var(--theme-accent)] bg-[color:var(--theme-accent)]" : "border-[color:var(--theme-border)] bg-white/5",
+          "relative h-5 w-9 rounded-full transition-colors duration-200",
+          checked ? "bg-[color:var(--theme-accent)]" : "bg-zinc-200 dark:bg-zinc-700",
         ].join(" ")}
       >
         <span
           className={[
-            "absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-white transition",
-            checked ? "left-4" : "left-1",
+            "absolute top-[3px] left-[3px] h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200",
+            checked ? "translate-x-4" : "translate-x-0",
           ].join(" ")}
         />
       </span>
@@ -104,10 +147,10 @@ export function Chips({
               onChange(active ? values.filter((value) => value !== option.value) : [...values, option.value]);
             }}
             className={[
-              "rounded-xl border px-3 py-2 text-sm transition",
+              "rounded-md border px-3 py-1.5 text-sm transition-colors",
               active
-                ? "border-[color:var(--theme-accent)] bg-[color:var(--theme-accent-light)] text-[color:var(--theme-accent)]"
-                : "border-[color:var(--theme-border)] bg-black/20 text-[color:var(--theme-muted)] hover:text-[color:var(--theme-text)]",
+                ? "border-[color:var(--theme-accent)] bg-[color:var(--theme-accent)] text-[color:var(--theme-accent-fg)]"
+                : "border-[color:var(--theme-border)] bg-[color:var(--theme-bg)] text-[color:var(--theme-muted)] hover:text-[color:var(--theme-text)] hover:bg-black/5 dark:hover:bg-white/5",
             ].join(" ")}
           >
             {option.label}
@@ -130,11 +173,11 @@ export function SectionTitle({
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-[color:var(--theme-accent)]">{kicker}</p>
-        <h2 className="text-xl font-semibold text-[color:var(--theme-text)]">{title}</h2>
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-[color:var(--theme-accent)]">{kicker}</p>
+        <h2 className="text-lg font-bold tracking-tight text-[color:var(--theme-text)]">{title}</h2>
       </div>
-      <div className="grid h-10 w-10 place-items-center rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-accent-light)] text-[color:var(--theme-accent)]">
-        <Icon size={18} />
+      <div className="grid h-8 w-8 place-items-center rounded-md border border-[color:var(--theme-border)] bg-[color:var(--theme-accent-light)] text-[color:var(--theme-accent)]">
+        <Icon size={15} />
       </div>
     </div>
   );

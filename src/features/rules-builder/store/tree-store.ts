@@ -35,7 +35,7 @@ export const defaultTree: TreeNode[] = [
                   { id: "user1", name: "user", type: "folder", expanded: false, children: [] },
                 ],
               },
-              { id: "api1", name: "api", type: "folder", expanded: false, children: [] },
+              { id: "main1", name: "(main)", type: "folder", expanded: false, children: [] },
               { id: "layout1", name: "layout.tsx", type: "file" },
               { id: "page1", name: "page.tsx", type: "file" },
             ],
@@ -51,9 +51,35 @@ export const defaultTree: TreeNode[] = [
               },
             ],
           },
-          { id: "lib1", name: "lib", type: "folder", expanded: false, children: [] },
-          { id: "hooks1", name: "hooks", type: "folder", expanded: false, children: [] },
-          { id: "types1", name: "types", type: "folder", expanded: false, children: [] },
+          {
+            id: "feat1", name: "features", type: "folder", expanded: true, children: [
+              {
+                id: "feat1_1", name: "feature-1", type: "folder", expanded: true, children: [
+                  { id: "feat1_1_hooks", name: "hooks", type: "folder", expanded: false, children: [] },
+                  { id: "feat1_1_comps", name: "components", type: "folder", expanded: false, children: [] },
+                  { id: "feat1_1_srvs", name: "services", type: "folder", expanded: false, children: [] },
+                  { id: "feat1_1_types", name: "types", type: "folder", expanded: false, children: [] },
+                  { id: "feat1_1_utils", name: "utils", type: "folder", expanded: false, children: [] },
+                  { id: "feat1_1_scr", name: "feature-1-screen.tsx", type: "file" },
+                  { id: "feat1_1_idx", name: "index.ts", type: "file" },
+                ],
+              },
+              {
+                id: "feat1_2", name: "feature-2", type: "folder", expanded: true, children: [
+                  { id: "feat1_2_idx", name: "index.ts", type: "file" },
+                  { id: "feat1_2_comps", name: "components", type: "folder", expanded: false, children: [] },
+                  { id: "feat1_2_scr", name: "feature-2-screen.tsx", type: "file" },
+                ],
+              },
+            ],
+          },
+          {
+            id: "shared1", name: "shared", type: "folder", expanded: true, children: [
+              { id: "shared1_lib", name: "lib", type: "folder", expanded: false, children: [] },
+              { id: "shared1_hooks", name: "hooks", type: "folder", expanded: false, children: [] },
+              { id: "shared1_types", name: "types", type: "folder", expanded: false, children: [] },
+            ],
+          },
         ],
       },
     ],

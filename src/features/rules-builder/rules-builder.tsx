@@ -1,14 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Check, Copy, Download, EyeOff, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  FolderTree,
+  Hash,
+  Layers,
+  Package,
+  Settings,
+  TestTube,
+  Type,
+  Zap,
+  Code2,
+} from "lucide-react";
 
 import AnimatedBackground from "@/components/common/animated-background";
 import Footer from "@/components/common/footer";
-import Sidebar, {
-  type PreviewMode,
-  type SidebarTab,
-} from "@/components/common/sidebar";
 import {
   CodeStyleTab,
   ComponentsTab,
@@ -22,137 +30,77 @@ import {
   StructureTab,
   TestingTab,
 } from "@/features/rules-builder/components/tabs";
-import { ThemeProvider, useTheme } from "@/shared/hooks/use-theme";
-import { generateMarkdown } from "@/shared/lib/generate-markdown";
+import { useRules, tabOrder, type SidebarTab } from "@/shared/contexts/rules-context";
 import {
-  defaultPackagesConfig,
-  type PackagesConfig,
-} from "@/shared/types/packages";
-import { defaultConfig, type RulesConfig } from "@/shared/types/rules";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-const initialConfig: RulesConfig = {
-  ...defaultConfig,
-  meta: {
-    ...defaultConfig.meta,
-    name: "my-project",
-    description: "Clean Next.js agent rules with a src-first architecture",
-  },
-  folderStructure: {
-    ...defaultConfig.folderStructure,
-    useSrcDir: true,
-    customFolders: ["components", "features", "shared"],
-  },
-};
-
-const targetFiles: Record<RulesConfig["meta"]["targetAgent"], string> = {
-  claude: "CLAUDE.md",
-  cursor: ".cursorrules",
-  copilot: "copilot-instructions.md",
-  generic: "PROJECT_RULES.md",
-};
+const navItems: Array<{ id: SidebarTab; label: string; icon: any }> = [
+  { id: "overview", label: "Project Settings", icon: Settings },
+  { id: "structure", label: "Folder Structure", icon: FolderTree },
+  { id: "packages", label: "Package Rules", icon: Package },
+  { id: "naming", label: "Naming Conventions", icon: Type },
+  { id: "code", label: "Code Style", icon: Code2 },
+  { id: "components", label: "Component Rules", icon: Layers },
+  { id: "imports", label: "Import Rules", icon: Package },
+  { id: "testing", label: "Testing setup", icon: TestTube },
+  { id: "performance", label: "Performance rules", icon: Zap },
+  { id: "custom", label: "Custom Rules", icon: Hash },
+];
 
 function RulesBuilderInner() {
-  const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<SidebarTab>("overview");
-  const [config, setConfig] = useState<RulesConfig>(initialConfig);
-  const [packagesConfig, setPackagesConfig] = useState<PackagesConfig>(
-    defaultPackagesConfig,
-  );
+  const {
+    activeTab,
+    setActiveTab,
+    config,
+    update,
+    packagesConfig,
+    setPackagesConfig,
+    previewMode,
+    fileName,
+    markdown,
+  } = useRules();
+
   const [newRule, setNewRule] = useState("");
   const [newImportGroup, setNewImportGroup] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [previewMode, setPreviewMode] = useState<PreviewMode>("both");
+  const [mounted, setMounted] = useState(false);
 
-  const fileName = targetFiles[config.meta.targetAgent];
-  const markdown = useMemo(
-    () => generateMarkdown(config, packagesConfig),
-    [config, packagesConfig],
-  );
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const showConfigPanel = previewMode !== "only";
   const showPreviewPanel = previewMode !== "hidden";
   const isSplitPreview = previewMode === "both";
-  const themeVars = {
-    "--theme-bg": theme.bg,
-    "--theme-surface": theme.surface,
-    "--theme-border": theme.surfaceBorder,
-    "--theme-text": theme.text,
-    "--theme-muted": theme.textMuted,
-    "--theme-accent": theme.accent,
-    "--theme-accent-light": theme.accentLight,
-    "--theme-accent-fg": theme.accentFg,
-    "--theme-preview-bg": theme.previewBg,
-    "--theme-preview-text": theme.previewText,
-    "--theme-shadow": theme.shadow,
-    color: theme.text,
-  } as CSSProperties;
 
-  const update = <K extends keyof RulesConfig>(
-    section: K,
-    value: Partial<RulesConfig[K]>,
-  ) => {
-    setConfig((current) => ({
-      ...current,
-      [section]: { ...(current[section] as object), ...value },
-    }));
+  const handlePrevTab = () => {
+    const currentIndex = tabOrder.indexOf(activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(tabOrder[currentIndex - 1]);
+    }
   };
 
-  const copyMarkdown = async () => {
-    await navigator.clipboard.writeText(markdown);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+  const handleNextTab = () => {
+    const currentIndex = tabOrder.indexOf(activeTab);
+    if (currentIndex < tabOrder.length - 1) {
+      setActiveTab(tabOrder[currentIndex + 1]);
+    }
   };
-
-  const exportFile = () => {
-    const blob = new Blob([markdown], { type: "text/markdown" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(link.href);
-  };
-
-  const cyclePreviewMode = () => {
-    setPreviewMode((current) => {
-      if (current === "both") return "only";
-      if (current === "only") return "hidden";
-      return "both";
-    });
-  };
-
-  const togglePreviewVisibility = useCallback(() => {
-    setPreviewMode((current) => (current === "hidden" ? "both" : "hidden"));
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "v" || event.repeat) return;
-      const target = event.target as HTMLElement | null;
-      if (target && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable)) return;
-      event.preventDefault();
-      togglePreviewVisibility();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [togglePreviewVisibility]);
 
   const addRule = () => {
     const rule = newRule.trim();
     if (!rule) return;
-    setConfig((current) => ({
-      ...current,
-      customRules: [...current.customRules, rule],
-    }));
+    update("customRules", [...config.customRules, rule]);
     setNewRule("");
   };
 
   const removeRule = (index: number) => {
-    setConfig((current) => ({
-      ...current,
-      customRules: current.customRules.filter(
-        (_, itemIndex) => itemIndex !== index,
-      ),
-    }));
+    update("customRules", config.customRules.filter(
+      (_, itemIndex) => itemIndex !== index,
+    ));
   };
 
   const mainPanel = (() => {
@@ -202,85 +150,93 @@ function RulesBuilderInner() {
 
   return (
     <main
-      className="relative isolate min-h-screen overflow-x-hidden text-[color:var(--theme-text)]"
-      style={themeVars}
+      className="relative isolate min-h-screen overflow-x-hidden text-[color:var(--theme-text)] pt-24 pb-28"
     >
       <AnimatedBackground />
-      <Sidebar
-        activeTab={activeTab}
-        copied={copied}
-        onCopy={copyMarkdown}
-        onExport={exportFile}
-        onCyclePreview={cyclePreviewMode}
-        previewMode={previewMode}
-        setActiveTab={setActiveTab}
-      />
-      {/* <Navbar /> */}
 
+      {/* Main Content Area */}
       <div
         className={[
-          "relative z-10 mx-auto grid w-full gap-5 px-5 py-8 md:px-8",
+          "relative z-10 mx-auto grid w-full px-5 py-6 md:px-8",
           isSplitPreview
-            ? "max-w-7xl lg:grid-cols-[minmax(0,1fr)_440px]"
-            : "max-w-4xl",
+            ? "max-w-7xl gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1fr)_440px] lg:grid-rows-[auto_auto]"
+            : "max-w-4xl gap-6",
         ].join(" ")}
       >
-        <section
-          className={[
-            "mx-auto w-full max-w-2xl text-center",
-            isSplitPreview ? "lg:col-span-2" : "",
-          ].join(" ")}
-        >
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.44em] text-[color:var(--theme-accent)]">
-            Focus
-          </p>
-          <h1 className="font-mono text-3xl font-medium tracking-wide text-[color:var(--theme-text)] md:text-4xl">
-            rules builder
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[color:var(--theme-muted)]">
-            Clean `src` architecture, glass UI, and export-ready instructions
-            for Claude, Cursor, Copilot, or any coding agent.
-          </p>
-        </section>
+        {showConfigPanel && (
+          <div className={isSplitPreview ? "lg:col-start-1 lg:row-start-1 min-w-0" : "min-w-0"}>
+            {mainPanel}
+          </div>
+        )}
 
-        {showConfigPanel && <div className="min-w-0">{mainPanel}</div>}
+        {showConfigPanel && (
+          <div className={isSplitPreview ? "lg:col-start-1 lg:row-start-2 min-w-0" : "min-w-0"}>
+            {/* Form Footer Navigation (Next and Previous Step Buttons under the Form) */}
+            <div className="flex items-center justify-between gap-4 mt-2 px-1">
+              <button
+                onClick={handlePrevTab}
+                disabled={!mounted || activeTab === tabOrder[0]}
+                className="flex items-center gap-1.5 rounded-md border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] px-4 py-2 text-xs font-semibold text-[color:var(--theme-text)] hover:bg-black/5 dark:hover:bg-white/5 transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer outline-none"
+              >
+                <ChevronLeft size={14} />
+                <span>Previous Step</span>
+              </button>
+              
+              <span className="text-xs text-[color:var(--theme-muted)] font-mono font-medium">
+                Step {tabOrder.indexOf(activeTab) + 1} of {tabOrder.length}
+              </span>
+
+              <button
+                onClick={handleNextTab}
+                disabled={mounted ? activeTab === tabOrder[tabOrder.length - 1] : false}
+                className="flex items-center gap-1.5 rounded-md bg-[color:var(--theme-accent)] px-4 py-2 text-xs font-semibold text-[color:var(--theme-accent-fg)] hover:opacity-90 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition disabled:opacity-40 cursor-pointer outline-none"
+              >
+                <span>Next Step</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {showPreviewPanel && (
-          <div className={isSplitPreview ? "hidden lg:block" : "min-w-0"}>
-            <PreviewPanel fileName={fileName} markdown={markdown} />
+          <div
+            className={
+              isSplitPreview
+                ? "hidden lg:block lg:col-start-2 lg:row-start-1 lg:row-span-1 min-h-0 h-full animate-in fade-in slide-in-from-right-3 duration-300"
+                : "min-w-0 h-full"
+            }
+          >
+            <PreviewPanel fileName={fileName} markdown={markdown} className="h-full" />
           </div>
         )}
       </div>
 
-      <div className="fixed bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] px-3 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl md:hidden">
-        <button
-          onClick={copyMarkdown}
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-[color:var(--theme-text)]"
-        >
-          {copied ? (
-            <Check size={17} className="text-[color:var(--theme-accent)]" />
-          ) : (
-            <Copy size={17} />
-          )}
-        </button>
-        <button
-          onClick={exportFile}
-          className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--theme-accent)] text-[color:var(--theme-accent-fg)]"
-        >
-          <Download size={17} />
-        </button>
-        <button
-          onClick={cyclePreviewMode}
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-[color:var(--theme-text)]"
-        >
-          {previewMode === "both" ? (
-            <EyeOff size={17} />
-          ) : previewMode === "only" ? (
-            <FileText size={17} />
-          ) : (
-            <FileText size={17} />
-          )}
-        </button>
+      {/* Bottom Floating Step Bar (Clean icon-only dock with tooltips) */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex h-12 items-center gap-1 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] px-2 shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.15)] transition-all">
+        <TooltipProvider>
+          {navItems.map((item) => {
+            const active = activeTab === item.id;
+            return (
+              <Tooltip key={item.id} delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setActiveTab(item.id)}
+                    className={`grid h-8 w-8 place-items-center rounded-full transition-colors cursor-pointer outline-none ${
+                      active
+                        ? "bg-[color:var(--theme-accent)] text-[color:var(--theme-accent-fg)] shadow-[0_0_8px_var(--theme-shadow)]"
+                        : "text-[color:var(--theme-muted)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[color:var(--theme-text)]"
+                    }`}
+                  >
+                    <item.icon size={14} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs font-medium bg-[color:var(--theme-surface)] border-[color:var(--theme-border)] text-[color:var(--theme-text)]">
+                  <p>{item.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </TooltipProvider>
       </div>
 
       <Footer />
@@ -289,9 +245,5 @@ function RulesBuilderInner() {
 }
 
 export default function RulesBuilder() {
-  return (
-    <ThemeProvider>
-      <RulesBuilderInner />
-    </ThemeProvider>
-  );
+  return <RulesBuilderInner />;
 }
